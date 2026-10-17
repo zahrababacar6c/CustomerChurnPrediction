@@ -361,17 +361,35 @@ Activate the environment.
 source .venv/bin/activate
 ```
 
+
 ### Install Dependencies
 
-```bash
-python -m pip install --upgrade pip
+The project separates dependencies according to their purpose.
 
+**Streamlit application:**
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
-The current requirements include dependencies for the notebooks, Streamlit application, and automated tests.
+**Development and automated testing:**
 
-The serialized model was created with scikit-learn 1.6.1, which is pinned in `requirements.txt` for compatibility.
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -v
+```
+
+**Machine learning notebooks:**
+
+```bash
+python -m pip install -r requirements-notebooks.txt
+```
+
+The notebook environment includes scikit-learn, PySpark, visualization libraries, and Jupyter tools.
+
+The deployed scikit-learn model requires version `1.6.1`, which is pinned for compatibility with the serialized Joblib artifact.
+
+Running PySpark locally also requires a compatible Java runtime.
 
 ### Run the Streamlit Application
 
