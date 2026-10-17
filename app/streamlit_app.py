@@ -1,157 +1,179 @@
-"""Premium Streamlit interface for the IBM Telco churn prediction demo."""
+"""Churn Intelligence | premium customer decision workspace."""
 
-import html
 import sys
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from app.predict import load_model, predict_churn  # noqa: E402
 
 st.set_page_config(
     page_title="Churn Intelligence | Decision Workspace",
-    page_icon="📊",
+    page_icon="◈",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-st.markdown(
-    """
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
-      :root { --ink:#102E2D; --navy:#101C29; --sage:#90AE94; --ivory:#F7F5EF; }
-      html, body, [class*="css"], [data-testid="stApp"] { font-family:'DM Sans',sans-serif; }
-      [data-testid="stAppViewContainer"] { background:#F3F6FA; color:#101C29; }
-      .block-container { max-width:1450px; padding-top:1rem; padding-bottom:3rem; }
-      h1,h2,h3,h4 { font-family:'Manrope',sans-serif; letter-spacing:-.035em; }
-      [data-testid="stHeader"] { background:transparent; }
-      [data-testid="stVerticalBlockBorderWrapper"] > div { border-radius:17px; }
-      div[data-testid="stMetric"] { background:white; border:1px solid #E2E8E4; padding:1.1rem; border-radius:16px; }
-      div[data-testid="stMetricValue"] { color:#073D76; font-weight:800; }
-      .brandbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:1.4rem; }
-      .brand { font-family:'Manrope',sans-serif; font-weight:800; color:#102E2D; letter-spacing:-.05em; font-size:1.1rem; }
-      .brand span { color:#52806A; }
-      .brandtag { color:#5B6D6C; font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
-      .hero { border-radius:22px; padding:2.5rem 2.8rem; box-shadow:0 20px 38px rgba(7,43,98,.16); background:linear-gradient(112deg,#072B62 0%,#0753A5 58%,#063A74 100%); color:#F7F5EF; margin-bottom:1.6rem; }
-      .hero .kicker { color:#B6D6C2; text-transform:uppercase; font-size:.75rem; letter-spacing:.18em; font-weight:800; }
-      .hero h1 { color:#FFF; font-size:clamp(2rem,4.2vw,3.25rem); margin:.7rem 0; line-height:1.15; }
-      .hero p { color:#DBE6E0; max-width:690px; line-height:1.65; margin-bottom:1.15rem; }
-      .hero .pill { display:inline-block; border:1px solid #66877E; color:#E3F0E7; padding:.4rem .75rem; border-radius:30px; font-size:.75rem; margin-right:.45rem; margin-top:.4rem; }
-      .sectionlabel { font-size:.73rem; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#567B6B; margin-bottom:.35rem; }
-      .sectionheading { font-family:'Manrope',sans-serif; font-size:1.45rem; font-weight:800; color:#101C29; letter-spacing:-.04em; margin-bottom:.4rem; }
-      .sectionnote { color:#60716E; font-size:.91rem; margin-bottom:1rem; }
-      .micro { color:#61716C; font-size:.82rem; }
-      .resultpanel { background:white; border:1px solid #E1E8E3; border-radius:18px; padding:1.3rem 1.5rem; }
-      .resultpanel .eyebrow { color:#64816E; font-size:.73rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
-      .resultpanel .bigscore { font-family:'Manrope',sans-serif; color:#102E2D; font-size:clamp(2.6rem,5vw,4rem); font-weight:800; letter-spacing:-.06em; line-height:1.25; }
-      .resultpanel .sub { color:#60716E; font-size:.85rem; }
-      .risk { border-radius:10px; display:inline-block; font-size:.8rem; font-weight:800; padding:.4rem .7rem; }
-      .risk.high { background:#FFF0E8; color:#9A4529; }
-      .risk.low { background:#E7F3EB; color:#25664A; }
-      div.stButton > button[kind="primary"] { background:#0757BD; border:1px solid #0757BD; color:white; border-radius:12px; min-height:3.3rem; font-weight:800; }
-      div.stButton > button[kind="primary"]:hover { background:#08478F; border-color:#08478F; }
-      div[data-baseweb="select"] > div, div[data-testid="stNumberInput"] input { border-radius:10px; }
-      .navshell { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 20px; background:#FFFFFF; border:1px solid #E3E9F1; border-radius:15px; margin-bottom:16px; box-shadow:0 3px 16px rgba(18,49,86,.04); }
-      .navlinks {display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
-      .navitem {font-size:.84rem; font-weight:700; color:#64758B; padding:9px 13px; border-radius:9px;}
-      .navitem.active {background:#E8F1FF; color:#0757BD;}
-      .workspace-label {font-size:.76rem; letter-spacing:.14em; text-transform:uppercase; font-weight:800; color:#0757BD;}
-      .hero-meta {display:flex; gap:12px; flex-wrap:wrap; margin-top:20px;}
-      .hero-stat {border:1px solid rgba(255,255,255,.24); background:rgba(255,255,255,.08); border-radius:12px; padding:11px 16px; min-width:135px;}
-      .hero-stat strong {display:block; font-size:1.08rem; color:white;}
-      .hero-stat small {color:#CFE1F9; font-size:.74rem;}
-      [data-testid="stVerticalBlockBorderWrapper"] {background:white; border-color:#DFE7F1!important; box-shadow:0 5px 16px rgba(23,53,89,.04);}
-      div[data-testid="stSelectbox"] label, div[data-testid="stNumberInput"] label {font-weight:600; color:#3E516A;}
-      .resultpanel {border-color:#DCE7F4; box-shadow:0 7px 24px rgba(7,43,98,.06);}
-      .resultpanel .bigscore {color:#0757BD;}
-      .footer { border-top:1px solid #DEE6DF; padding-top:1.1rem; color:#63716D; font-size:.83rem; }
-      @media(max-width:640px) { .hero { padding:1.5rem; } .brandtag { display:none; } .block-container { padding-top:.8rem; } }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown("""
+<style>
+:root { --navy:#071f43; --blue:#0759db; --ink:#14243b;
+        --muted:#687b96; --line:#e3eaf3; --paper:#f4f7fc; }
+[data-testid="stAppViewContainer"] {background:#f4f7fc;}
+.block-container {max-width:1480px; padding:1.15rem 2.5rem 3rem;}
+header[data-testid="stHeader"] {background:transparent;}
+#MainMenu, footer {visibility:hidden;}
+h1,h2,h3 {letter-spacing:-.035em;}
+.topbar {display:flex; justify-content:space-between; align-items:center;
+         padding:13px 20px; background:white; border:1px solid #e2e9f2;
+         border-radius:16px 16px 0 0; font-size:12px; color:#6d7e95;}
+.brand {font-weight:850; color:#092a60; font-size:15px; letter-spacing:-.04em;}
+.brand span {color:#1672eb;}
+.nav-pill {display:inline-block; padding:6px 13px; border-radius:20px;
+           background:#e9f1ff; color:#1358b7; font-weight:700;}
+.hero {padding:30px 34px 32px; background:linear-gradient(115deg,#071b40 0%,#083f8f 72%,#0867c6 100%);
+       color:white; border-radius:0 0 20px 20px; margin-bottom:24px; position:relative;}
+.eyebrow {font-size:10px; font-weight:800; letter-spacing:.17em; color:#a8d5ff;}
+.hero h1 {color:white; font-size:clamp(29px,3vw,42px); margin:10px 0 8px;}
+.hero p {color:#d3e4ff; max-width:670px; font-size:14px; line-height:1.7; margin:0;}
+.hero-meta {margin-top:20px; display:flex; gap:9px; flex-wrap:wrap;}
+.hero-meta span {border:1px solid #7da8df75; background:#ffffff12; color:#e4efff;
+                 padding:6px 11px; border-radius:99px; font-size:11px;}
+.section-label {color:#1965c7; letter-spacing:.16em; font-weight:800;
+                font-size:10px; margin:0 0 5px;}
+.section-heading {font-size:21px; font-weight:800; color:#10294b; margin-bottom:4px;}
+.section-copy {color:#6c7e98; font-size:12px; margin-bottom:13px;}
+.panel-title {color:#122b4b; font-weight:800; font-size:15px; margin:0;}
+.panel-sub {color:#7a8aa0; font-size:11px; margin-bottom:10px;}
+[data-testid="stVerticalBlockBorderWrapper"] > div {border-color:#e0e8f2 !important;
+    border-radius:17px !important; background:#fff !important;}
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlockBorderWrapper"] > div {
+    background:#f8faff !important;}
+[data-testid="stWidgetLabel"] p {font-size:12px; font-weight:650; color:#344962;}
+[data-baseweb="select"] > div, [data-testid="stNumberInput"] input {
+    background:#f7f9fd !important; border-color:#e1e8f1 !important;
+    border-radius:9px !important; min-height:40px; color:#19314f;}
+[data-testid="stNumberInput"] button {background:#f0f4fa !important;}
+div.stButton > button[kind="primary"] {
+    background:#0862d8; color:white; border:0; border-radius:11px;
+    min-height:47px; font-weight:750; box-shadow:0 5px 14px #0c59c72b;}
+div.stButton > button[kind="primary"]:hover {background:#074eb0;}
+.kpi-label {color:#647a95; font-size:11px; font-weight:750; letter-spacing:.09em;}
+.kpi-value {font-size:clamp(32px,4vw,52px); font-weight:850; letter-spacing:-.06em;
+            color:#0d2a50; margin:5px 0;}
+.status {display:inline-block; padding:6px 11px; border-radius:99px;
+         font-weight:750; font-size:11px;}
+.status-high {background:#fff0df; color:#9a520e;}
+.status-low {background:#e5f8ef; color:#166c4b;}
+.muted-note {font-size:11px; color:#71839b; line-height:1.6;}
+.footerline {border-top:1px solid #dce5f0; padding-top:14px; margin-top:22px;
+             font-size:11px; color:#71839b;}
+.footerline a {color:#165dbb; text-decoration:none;}
+@media (max-width:850px) {
+ .block-container {padding:1rem 1rem 2rem;}
+ .hero {padding:25px 20px;}
+ .topbar {padding:12px 14px;}
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 @st.cache_resource
 def get_model():
-    """Load the trusted scikit-learn pipeline once per Streamlit process."""
+    """Cache the trusted serialized model."""
     return load_model()
 
 
-st.markdown(
-    """<div class="navshell">
-      <div class="brand">CHURN<span> / </span>INTELLIGENCE</div>
-      <div class="navlinks"><span class="navitem active">Workspace</span>
-      <span class="navitem">Customer profile</span><span class="navitem">Prediction insights</span></div>
-      <div class="brandtag">APPLIED ML · PORTFOLIO</div>
-    </div>""", unsafe_allow_html=True,
-)
-st.markdown(
-    """<div class="hero">
-      <div class="kicker">CUSTOMER ANALYTICS / DECISION WORKSPACE</div>
-      <h1>Understand churn.<br>Make informed decisions.</h1>
-      <p>Explore a telecom customer's estimated probability of leaving using a trained
-      machine-learning pipeline. Configure a customer profile and inspect the model output.</p>
-      <div class="hero-meta">
-        <div class="hero-stat"><strong>20</strong><small>Model input features</small></div>
-        <div class="hero-stat"><strong>50%</strong><small>Baseline threshold</small></div>
-        <div class="hero-stat"><strong>IBM Telco</strong><small>Public demo dataset</small></div>
-      </div>
-    </div>""", unsafe_allow_html=True,
-)
+def section(title, subtitle):
+    st.markdown(f'<div class="panel-title">{title}</div>'
+                f'<div class="panel-sub">{subtitle}</div>',
+                unsafe_allow_html=True)
+
+
+def choice(label, options, key, help_text=None):
+    return st.selectbox(label, options, key=key, help=help_text)
+
+
+st.markdown("""
+<div class="topbar">
+  <div class="brand">◈ CHURN<span> / </span>INTELLIGENCE</div>
+  <div><span class="nav-pill">● Decision workspace</span> &nbsp; APPLIED ML · PORTFOLIO</div>
+</div>
+<div class="hero">
+  <div class="eyebrow">CUSTOMER ANALYTICS / MACHINE LEARNING</div>
+  <h1>Understand churn.<br>Make informed decisions.</h1>
+  <p>Explore a telecom customer's estimated churn probability using a
+  trained machine-learning pipeline. Configure a profile and inspect the
+  model's score in one streamlined workspace.</p>
+  <div class="hero-meta">
+    <span>IBM Telco dataset</span><span>Logistic regression</span>
+    <span>20 input features</span><span>Interactive ML demo</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 try:
     model = get_model()
-except FileNotFoundError:
-    st.error("Model artifact missing: `models/customer_churn_pipeline.joblib`.")
-    st.stop()
 except Exception:
-    st.error("Unable to load the model. Verify the artifact and dependencies.")
+    st.error("The trained model could not be loaded. Verify the model artifact and dependencies.")
     st.stop()
 
-st.markdown('<div class="sectionlabel">01 / Workspace · Input configuration</div><div class="sectionheading">Customer profile</div>'
-            '<div class="sectionnote">Build a customer scenario. Dependent phone and internet options update automatically.</div>',
+st.markdown('<div class="section-label">01 / CUSTOMER CONFIGURATION</div>'
+            '<div class="section-heading">Build a customer profile</div>'
+            '<div class="section-copy">Service-dependent fields update immediately when you change an option.</div>',
             unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns(3, gap="medium")
-with col1:
-    with st.container(border=True):
-        st.markdown("#### 01  ·  Customer & phone")
-        gender = st.selectbox("Gender", ["Female", "Male"])
-        senior = st.selectbox("Senior citizen", ["No", "Yes"])
-        partner = st.selectbox("Partner", ["No", "Yes"])
-        dependents = st.selectbox("Dependents", ["No", "Yes"])
-        tenure = st.number_input("Tenure (months)", min_value=0, max_value=120, value=12, step=1)
-        phone = st.selectbox("Phone service", ["Yes", "No"])
-        multiple = st.selectbox("Multiple lines", ["No phone service"] if phone == "No" else ["No", "Yes"], key=f"multiple_{phone}")
+# Native Streamlit widgets stay outside st.form to enable instant reruns.
+profile_col, services_col, billing_col = st.columns([1, 1, 1], gap="medium")
 
-with col2:
+with profile_col:
     with st.container(border=True):
-        st.markdown("#### 02  ·  Internet services")
-        internet = st.selectbox("Internet service", ["Fiber optic", "DSL", "No"])
-        internet_options = ["No internet service"] if internet == "No" else ["No", "Yes"]
-        internet_key = "none" if internet == "No" else "active"
-        online_security = st.selectbox("Online security", internet_options, key=f"security_{internet_key}")
-        online_backup = st.selectbox("Online backup", internet_options, key=f"backup_{internet_key}")
-        device_protection = st.selectbox("Device protection", internet_options, key=f"device_{internet_key}")
-        tech_support = st.selectbox("Tech support", internet_options, key=f"tech_{internet_key}")
-        streaming_tv = st.selectbox("Streaming TV", internet_options, key=f"tv_{internet_key}")
-        streaming_movies = st.selectbox("Streaming movies", internet_options, key=f"movies_{internet_key}")
+        section("01 · Customer & phone", "Demographics and telephone service")
+        gender = choice("Gender", ["Female", "Male"], "gender")
+        senior = choice("Senior citizen", ["No", "Yes"], "senior")
+        partner = choice("Partner", ["No", "Yes"], "partner")
+        dependents = choice("Dependents", ["No", "Yes"], "dependents")
+        tenure = st.number_input("Tenure (months)", min_value=0, max_value=120,
+                                 value=12, step=1, key="tenure")
+        phone = choice("Phone service", ["Yes", "No"], "phone")
+        multiple_options = ["No phone service"] if phone == "No" else ["No", "Yes"]
+        multiple = choice("Multiple lines", multiple_options, f"multiple_{phone}")
 
-with col3:
+with services_col:
     with st.container(border=True):
-        st.markdown("#### 03  ·  Contract & billing")
-        contract = st.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
-        paperless = st.selectbox("Paperless billing", ["Yes", "No"])
-        payment = st.selectbox("Payment method", ["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"])
-        monthly = st.number_input("Monthly charges ($)", min_value=0.0, max_value=1000.0, value=75.0, step=1.0)
-        total = st.number_input("Total charges ($)", min_value=0.0, max_value=100000.0, value=900.0, step=10.0)
-        st.caption("Amounts follow the source dataset's USD units.")
+        section("02 · Internet & services", "Connectivity and value-added services")
+        internet = choice("Internet service", ["Fiber optic", "DSL", "No"], "internet")
+        addons = ["No internet service"] if internet == "No" else ["No", "Yes"]
+        suffix = "off" if internet == "No" else "on"
+        online_security = choice("Online security", addons, f"security_{suffix}")
+        online_backup = choice("Online backup", addons, f"backup_{suffix}")
+        device_protection = choice("Device protection", addons, f"protection_{suffix}")
+        tech_support = choice("Tech support", addons, f"support_{suffix}")
+        streaming_tv = choice("Streaming TV", addons, f"tv_{suffix}")
+        streaming_movies = choice("Streaming movies", addons, f"movies_{suffix}")
+
+with billing_col:
+    with st.container(border=True):
+        section("03 · Contract & billing", "Commercial terms and account value")
+        contract = choice("Contract", ["Month-to-month", "One year", "Two year"], "contract")
+        paperless = choice("Paperless billing", ["Yes", "No"], "paperless")
+        payment = choice(
+            "Payment method",
+            ["Electronic check", "Mailed check", "Bank transfer (automatic)",
+             "Credit card (automatic)"],
+            "payment",
+        )
+        monthly = st.number_input("Monthly charges (USD)", min_value=0.0,
+                                  max_value=1000.0, value=75.0, step=1.0, key="monthly")
+        total = st.number_input("Total charges (USD)", min_value=0.0,
+                                max_value=100000.0, value=900.0, step=10.0, key="total")
+        st.caption("Amounts use the source dataset's USD units.")
+        st.info("Prediction uses the exact customer values shown in this workspace.",
+                icon="ℹ️")
 
 customer = {
     "gender": gender,
@@ -176,63 +198,78 @@ customer = {
     "TotalCharges_missing": 0,
 }
 
-st.write("")
-left_action, right_action = st.columns([2, 1])
-with left_action:
-    st.caption("The score is an estimate, not an explanation of why a customer may churn.")
-with right_action:
-    submitted = st.button("Generate prediction →", type="primary", use_container_width=True)
+action_left, action_right = st.columns([2, 1], gap="medium")
+with action_left:
+    st.caption("Educational demonstration · No automated customer retention decision.")
+with action_right:
+    submitted = st.button("Generate prediction  →", type="primary",
+                          use_container_width=True)
 
 if submitted:
     try:
         probability = predict_churn(customer, model)
+        st.session_state["churn_result"] = {
+            "profile": customer.copy(),
+            "probability": probability,
+        }
     except ValueError as exc:
-        st.error(f"Please review the profile: {exc}")
-        st.stop()
+        st.session_state.pop("churn_result", None)
+        st.error(f"Please review the input profile: {exc}")
     except Exception:
-        st.error("Prediction failed. Please check the model and feature schema.")
-        st.stop()
-    st.session_state["prediction"] = {"customer": customer.copy(), "probability": probability}
+        st.session_state.pop("churn_result", None)
+        st.error("Prediction failed. Verify the trained model and feature schema.")
 
-last_prediction = st.session_state.get("prediction")
-if last_prediction is not None and last_prediction["customer"] == customer:
-    probability = last_prediction["probability"]
-    threshold = 0.50
-    above = probability >= threshold
-    st.divider()
-    st.markdown('<div class="sectionlabel">02 / Prediction intelligence</div><div class="sectionheading">Prediction insights</div>'
-                '<div class="sectionnote">A transparent view of the estimated score and the baseline decision rule.</div>',
-                unsafe_allow_html=True)
-    result_left, result_right = st.columns([1, 1.4], gap="medium")
-    with result_left:
-        risk_class = "high" if above else "low"
-        risk_label = "Above baseline threshold" if above else "Below baseline threshold"
-        st.markdown(
-            '<div class="resultpanel"><div class="eyebrow">Estimated churn probability</div>'
-            f'<div class="bigscore">{probability:.1%}</div>'
-            f'<span class="risk {risk_class}">{html.escape(risk_label)}</span>'
-            '<p class="sub">Model-estimated probability of customer churn.</p></div>',
-            unsafe_allow_html=True,
-        )
-    with result_right:
+result = st.session_state.get("churn_result")
+st.markdown('<div class="section-label" style="margin-top:26px">02 / MODEL OUTPUT</div>'
+            '<div class="section-heading">Prediction insights</div>',
+            unsafe_allow_html=True)
+
+if result is not None and result["profile"] == customer:
+    probability = result["probability"]
+    high = probability >= 0.5
+    left, middle, right = st.columns([1.1, 1.2, 1], gap="medium")
+    with left:
         with st.container(border=True):
-            st.markdown("#### Model score & decision rule")
+            st.markdown('<div class="kpi-label">ESTIMATED CHURN PROBABILITY</div>',
+                        unsafe_allow_html=True)
+            st.markdown(f'<div class="kpi-value">{probability:.1%}</div>',
+                        unsafe_allow_html=True)
+            state = "Above baseline threshold" if high else "Below baseline threshold"
+            style = "status-high" if high else "status-low"
+            st.markdown(f'<span class="status {style}">{state}</span>',
+                        unsafe_allow_html=True)
+            st.caption("Model-estimated probability, not a guarantee.")
+    with middle:
+        with st.container(border=True):
+            section("Probability indicator", "Position relative to the 50% baseline")
             st.progress(probability)
-            st.metric("Baseline decision threshold", "50%", delta=f"{(probability - threshold)*100:+.1f} pp vs. threshold", delta_color="off")
-            st.write("The estimated score is **above** the baseline threshold." if above else
-                     "The estimated score is **below** the baseline threshold.")
-            st.caption("This 50% threshold follows the notebook baseline; production decisions require business-cost analysis and validation.")
-
-    with st.expander("Explore the submitted model features"):
-        st.dataframe(pd.DataFrame([customer]).T.rename(columns={0: "Value"}), use_container_width=True)
-    st.info("Interpretation note: This score is not a causal explanation or a calibrated guarantee. Do not use it as an automated retention decision.")
+            st.metric("Baseline threshold", "50%")
+            st.caption(f"Difference: {(probability - 0.5) * 100:+.1f} percentage points")
+    with right:
+        with st.container(border=True):
+            section("Profile snapshot", "Values supplied for this prediction")
+            st.write(f"**Contract:** {customer['Contract']}")
+            st.write(f"**Internet:** {customer['InternetService']}")
+            st.write(f"**Tenure:** {customer['tenure']} months")
+            st.write(f"**Monthly charge:** ${customer['MonthlyCharges']:,.2f}")
+            st.caption("These are inputs, not identified causes of churn.")
+    with st.expander("View the 20 submitted model features"):
+        st.dataframe(pd.DataFrame(
+            {"Feature": list(customer.keys()), "Value": list(customer.values())}
+        ), hide_index=True, use_container_width=True)
+    st.info("Interpretation: this score is not a causal explanation or a calibrated "
+            "guarantee. The 50% threshold is a baseline, not a validated business policy.",
+            icon="ℹ️")
 else:
-    st.markdown('<p class="micro">Prediction results will appear here after you submit a profile.</p>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("**Your prediction workspace is ready.**")
+        st.caption("Complete or adjust the customer profile, then select "
+                   "Generate prediction to display model insights.")
 
-st.write("")
-st.markdown(
-    '<div class="footer">Portfolio demonstration · IBM Telco Customer Churn · scikit-learn · '
-    '<a href="https://github.com/zahrababacar6c/CustomerChurnPrediction">GitHub repository</a> · '
-    '<a href="https://github.com/IBM/telco-customer-churn-on-icp4d">Dataset source</a></div>',
-    unsafe_allow_html=True,
-)
+st.markdown("""
+<div class="footerline">
+  Portfolio ML demonstration · IBM Telco Customer Churn · scikit-learn ·
+  <a href="https://github.com/zahrababacar6c/CustomerChurnPrediction">GitHub repository</a> ·
+  <a href="https://github.com/IBM/telco-customer-churn-on-icp4d">Dataset source</a>
+</div>
+""", unsafe_allow_html=True)
