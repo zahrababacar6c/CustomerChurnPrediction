@@ -2,8 +2,7 @@ numpy
 pandas
 matplotlib
 seaborn
-scikit-learn
-joblib
+scikit-learn==1.6.1joblib
 pyspark
 plotly
 streamlit
