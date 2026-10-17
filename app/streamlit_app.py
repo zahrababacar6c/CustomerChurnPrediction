@@ -94,3 +94,145 @@ st.markdown(
 st.markdown(
     """<div class="hero">
       <div class="kicker">CUSTOMER ANALYTICS / DECISION WORKSPACE</div>
+      <h1>Understand churn.<br>Make informed decisions.</h1>
+      <p>Explore a telecom customer's estimated probability of leaving using a trained
+      machine-learning pipeline. Configure a customer profile and inspect the model output.</p>
+      <div class="hero-meta">
+        <div class="hero-stat"><strong>20</strong><small>Model input features</small></div>
+        <div class="hero-stat"><strong>50%</strong><small>Baseline threshold</small></div>
+        <div class="hero-stat"><strong>IBM Telco</strong><small>Public demo dataset</small></div>
+      </div>
+    </div>""", unsafe_allow_html=True,
+)
+
+try:
+    model = get_model()
+except FileNotFoundError:
+    st.error("Model artifact missing: `models/customer_churn_pipeline.joblib`.")
+    st.stop()
+except Exception:
+    st.error("Unable to load the model. Verify the artifact and dependencies.")
+    st.stop()
+
+st.markdown('<div class="sectionlabel">01 / Workspace · Input configuration</div><div class="sectionheading">Customer profile</div>'
+            '<div class="sectionnote">Build a customer scenario. Dependent phone and internet options update automatically.</div>',
+            unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns(3, gap="medium")
+with col1:
+    with st.container(border=True):
+        st.markdown("#### 01  ·  Customer & phone")
+        gender = st.selectbox("Gender", ["Female", "Male"])
+        senior = st.selectbox("Senior citizen", ["No", "Yes"])
+        partner = st.selectbox("Partner", ["No", "Yes"])
+        dependents = st.selectbox("Dependents", ["No", "Yes"])
+        tenure = st.number_input("Tenure (months)", min_value=0, max_value=120, value=12, step=1)
+        phone = st.selectbox("Phone service", ["Yes", "No"])
+        multiple = st.selectbox("Multiple lines", ["No phone service"] if phone == "No" else ["No", "Yes"], key=f"multiple_{phone}")
+
+with col2:
+    with st.container(border=True):
+        st.markdown("#### 02  ·  Internet services")
+        internet = st.selectbox("Internet service", ["Fiber optic", "DSL", "No"])
+        internet_options = ["No internet service"] if internet == "No" else ["No", "Yes"]
+        internet_key = "none" if internet == "No" else "active"
+        online_security = st.selectbox("Online security", internet_options, key=f"security_{internet_key}")
+        online_backup = st.selectbox("Online backup", internet_options, key=f"backup_{internet_key}")
+        device_protection = st.selectbox("Device protection", internet_options, key=f"device_{internet_key}")
+        tech_support = st.selectbox("Tech support", internet_options, key=f"tech_{internet_key}")
+        streaming_tv = st.selectbox("Streaming TV", internet_options, key=f"tv_{internet_key}")
+        streaming_movies = st.selectbox("Streaming movies", internet_options, key=f"movies_{internet_key}")
+
+with col3:
+    with st.container(border=True):
+        st.markdown("#### 03  ·  Contract & billing")
+        contract = st.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
+        paperless = st.selectbox("Paperless billing", ["Yes", "No"])
+        payment = st.selectbox("Payment method", ["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"])
+        monthly = st.number_input("Monthly charges ($)", min_value=0.0, max_value=1000.0, value=75.0, step=1.0)
+        total = st.number_input("Total charges ($)", min_value=0.0, max_value=100000.0, value=900.0, step=10.0)
+        st.caption("Amounts follow the source dataset's USD units.")
+
+customer = {
+    "gender": gender,
+    "SeniorCitizen": int(senior == "Yes"),
+    "Partner": partner,
+    "Dependents": dependents,
+    "tenure": int(tenure),
+    "PhoneService": phone,
+    "MultipleLines": multiple,
+    "InternetService": internet,
+    "OnlineSecurity": online_security,
+    "OnlineBackup": online_backup,
+    "DeviceProtection": device_protection,
+    "TechSupport": tech_support,
+    "StreamingTV": streaming_tv,
+    "StreamingMovies": streaming_movies,
+    "Contract": contract,
+    "PaperlessBilling": paperless,
+    "PaymentMethod": payment,
+    "MonthlyCharges": float(monthly),
+    "TotalCharges": float(total),
+    "TotalCharges_missing": 0,
+}
+
+st.write("")
+left_action, right_action = st.columns([2, 1])
+with left_action:
+    st.caption("The score is an estimate, not an explanation of why a customer may churn.")
+with right_action:
+    submitted = st.button("Generate prediction →", type="primary", use_container_width=True)
+
+if submitted:
+    try:
+        probability = predict_churn(customer, model)
+    except ValueError as exc:
+        st.error(f"Please review the profile: {exc}")
+        st.stop()
+    except Exception:
+        st.error("Prediction failed. Please check the model and feature schema.")
+        st.stop()
+    st.session_state["prediction"] = {"customer": customer.copy(), "probability": probability}
+
+last_prediction = st.session_state.get("prediction")
+if last_prediction is not None and last_prediction["customer"] == customer:
+    probability = last_prediction["probability"]
+    threshold = 0.50
+    above = probability >= threshold
+    st.divider()
+    st.markdown('<div class="sectionlabel">02 / Prediction intelligence</div><div class="sectionheading">Prediction insights</div>'
+                '<div class="sectionnote">A transparent view of the estimated score and the baseline decision rule.</div>',
+                unsafe_allow_html=True)
+    result_left, result_right = st.columns([1, 1.4], gap="medium")
+    with result_left:
+        risk_class = "high" if above else "low"
+        risk_label = "Above baseline threshold" if above else "Below baseline threshold"
+        st.markdown(
+            '<div class="resultpanel"><div class="eyebrow">Estimated churn probability</div>'
+            f'<div class="bigscore">{probability:.1%}</div>'
+            f'<span class="risk {risk_class}">{html.escape(risk_label)}</span>'
+            '<p class="sub">Model-estimated probability of customer churn.</p></div>',
+            unsafe_allow_html=True,
+        )
+    with result_right:
+        with st.container(border=True):
+            st.markdown("#### Model score & decision rule")
+            st.progress(probability)
+            st.metric("Baseline decision threshold", "50%", delta=f"{(probability - threshold)*100:+.1f} pp vs. threshold", delta_color="off")
+            st.write("The estimated score is **above** the baseline threshold." if above else
+                     "The estimated score is **below** the baseline threshold.")
+            st.caption("This 50% threshold follows the notebook baseline; production decisions require business-cost analysis and validation.")
+
+    with st.expander("Explore the submitted model features"):
+        st.dataframe(pd.DataFrame([customer]).T.rename(columns={0: "Value"}), use_container_width=True)
+    st.info("Interpretation note: This score is not a causal explanation or a calibrated guarantee. Do not use it as an automated retention decision.")
+else:
+    st.markdown('<p class="micro">Prediction results will appear here after you submit a profile.</p>', unsafe_allow_html=True)
+
+st.write("")
+st.markdown(
+    '<div class="footer">Portfolio demonstration · IBM Telco Customer Churn · scikit-learn · '
+    '<a href="https://github.com/zahrababacar6c/CustomerChurnPrediction">GitHub repository</a> · '
+    '<a href="https://github.com/IBM/telco-customer-churn-on-icp4d">Dataset source</a></div>',
+    unsafe_allow_html=True,
+)
