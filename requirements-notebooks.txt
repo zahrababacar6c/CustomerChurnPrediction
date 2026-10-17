@@ -1,0 +1,15 @@
+
+# Core machine learning dependencies
+-r requirements.txt
+
+# Exploratory data analysis and visualization
+matplotlib
+seaborn
+plotly
+
+# Distributed data processing and machine learning
+pyspark
+
+# Notebook execution
+jupyterlab
+ipykernel
