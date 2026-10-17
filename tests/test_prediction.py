@@ -6,6 +6,8 @@ from unittest.mock import Mock
 
 import pytest
 
+import numpy as np
+
 from app.predict import (
     EXPECTED_FEATURES,
     load_model,
@@ -187,12 +189,13 @@ def test_valid_customer_without_internet(customer):
 )
 def test_invalid_model_probability(customer, probability):
     mock_model = Mock()
-    mock_model.predict_proba.return_value = [
+    mock_model.predict_proba.return_value = np.array([
         [1.0 - probability, probability]
-    ]
+    ])
 
     with pytest.raises(ValueError):
         predict_churn(customer, mock_model)
+
 
 
 def test_prediction_rejects_invalid_customer(customer, trained_model):
