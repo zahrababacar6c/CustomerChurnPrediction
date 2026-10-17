@@ -1,0 +1,6 @@
+
+# Install application dependencies
+-r requirements.txt
+
+# Development and testing
+pytest
