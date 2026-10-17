@@ -1,10 +1,40 @@
+
+# Python cache and compiled files
 __pycache__/
-.ipynb_checkpoints/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Environment variables and secrets
 .env
-*.pyc
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Local datasets
+data/*.csv
+data/*.parquet
+
+# Generated model artifacts
 models/*
 !models/README.md
-data/*.csv
-models/*
 !models/customer_churn_pipeline.joblib
+
+# Local logs and temporary files
+*.log
+*.tmp
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
