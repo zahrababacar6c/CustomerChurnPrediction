@@ -7,5 +7,4 @@ models/*
 !models/README.md
 data/*.csv
 models/*
-!models/README.md
 !models/customer_churn_pipeline.joblib
