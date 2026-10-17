@@ -7,3 +7,4 @@ joblib
 pyspark
 plotly
 streamlit
+pytest
