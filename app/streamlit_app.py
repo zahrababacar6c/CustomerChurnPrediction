@@ -1,3 +1,35 @@
+"""Interactive customer churn prediction application."""
+
+import sys
+from pathlib import Path
+
+import pandas as pd
+import streamlit as st
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from app.predict import load_model, predict_churn
+
+st.set_page_config(
+    page_title="Customer Churn | Prediction Studio",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+st.markdown(
+    """
+    <style>
+      .stApp {background: #F6F8FB; color: #17263C;}
+      .block-container {max-width: 1180px; padding-top: 2.2rem; padding-bottom: 3rem;}
+      h1, h2, h3 {letter-spacing: -.035em; color: #15263D;}
+      div[data-testid="stVerticalBlockBorderWrapper"] > div {
+        border-color: #E1E8F0;
+      }
+      div[data-testid="stMetric"] {
+        background: white; border: 1px solid #E1E8F0;
         border-radius: 14px; padding: 1.1rem;
       }
       div[data-testid="stMetricValue"] {font-size: 2.25rem; color: #102E2D;}
@@ -157,3 +189,40 @@ if submitted:
         "customer": customer.copy(),
         "probability": probability,
     }
+
+last_prediction = st.session_state.get("last_prediction")
+if last_prediction is not None and last_prediction["customer"] == customer:
+    probability = last_prediction["probability"]
+    threshold = 0.50
+    st.divider()
+    st.subheader("Prediction overview")
+    left, right = st.columns([1, 2], gap="large")
+    with left:
+        st.metric("Estimated churn probability", f"{probability:.1%}")
+        if probability >= threshold:
+            st.warning("Above the 50% baseline decision threshold")
+        else:
+            st.success("Below the 50% baseline decision threshold")
+    with right:
+        st.markdown("#### Estimated probability")
+        st.progress(probability)
+        st.caption(
+            "The 50% threshold follows the notebook's baseline evaluation. "
+            "A production threshold should be selected using validation data and business costs."
+        )
+        st.info(
+            "This probability is a model estimate, not a causal explanation, "
+            "a calibrated guarantee, or a production retention recommendation."
+        )
+    with st.expander("Review submitted model features"):
+        features = pd.DataFrame([last_prediction["customer"]])
+        st.dataframe(features.T.rename(columns={0: "Value"}), use_container_width=True)
+else:
+    st.caption("Select **Estimate churn probability** to generate a result for the current profile.")
+
+st.divider()
+st.markdown(
+    "**Project:** [GitHub repository](https://github.com/zahrababacar6c/CustomerChurnPrediction)"
+    " · **Dataset:** [IBM Telco Customer Churn](https://github.com/IBM/telco-customer-churn-on-icp4d)"
+)
+st.caption("Portfolio demonstration · IBM Telco dataset · scikit-learn")
